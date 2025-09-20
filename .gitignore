@@ -3,6 +3,8 @@ __pycache__/
 *.py[oc]
 build/
 dist/
+qr_codes/
+pdf/
 wheels/
 *.egg-info
 
