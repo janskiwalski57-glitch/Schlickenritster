@@ -13,7 +13,7 @@ ROWS = 6
 SPACING = 5 * mm
 
 
-def create_qr_codes_pdf():
+def create_qr_codes_pdf(background_image=None):
     """Create PDF with just QR codes"""
     c = canvas.Canvas("pdf/qr_codes_front.pdf", pagesize=A4)
 
@@ -30,10 +30,20 @@ def create_qr_codes_pdf():
         for y in y_positions:
             for x in x_positions:
                 if current_qr < len(qr_files):
-                    # Draw border around the QR code
-                    c.setStrokeColorRGB(1.0, 0.75, 0.8)  # Pink border
-                    c.setLineWidth(0.5)
-                    c.rect(x, y, QR_SIZE, QR_SIZE)
+                    # Draw background image if provided
+                    if background_image and os.path.exists(background_image):
+                        try:
+                            # Draw background image with proper scaling to fill the card
+                            c.drawImage(background_image, x, y, QR_SIZE, QR_SIZE, 
+                                      mask='auto', preserveAspectRatio=True)
+                        except:
+                            # If image fails to load, draw a colored background
+                            c.setFillColorRGB(0.95, 0.95, 0.98)  # Light background
+                            c.rect(x, y, QR_SIZE, QR_SIZE, fill=1)
+                    else:
+                        # Draw default background
+                        c.setFillColorRGB(0.95, 0.95, 0.98)  # Light background
+                        c.rect(x, y, QR_SIZE, QR_SIZE, fill=1)
                     
                     c.drawImage(
                         f"qr_codes/{qr_files[current_qr]}", x, y, QR_SIZE, QR_SIZE
@@ -47,7 +57,7 @@ def create_qr_codes_pdf():
     c.save()
 
 
-def create_metadata_pdf():
+def create_metadata_pdf(background_image=None):
     """Create PDF with metadata"""
     c = canvas.Canvas("pdf/metadata_back.pdf", pagesize=A4)
 
@@ -65,10 +75,20 @@ def create_metadata_pdf():
         for y in y_positions:
             for x in x_positions[::-1]:
                 if current_item < len(json_files):
-                    # Draw border around the card
-                    c.setStrokeColorRGB(1.0, 0.75, 0.8)  # Pink border
-                    c.setLineWidth(0.5)
-                    c.rect(x, y, QR_SIZE, QR_SIZE)
+                    # Draw background image if provided
+                    if background_image and os.path.exists(background_image):
+                        try:
+                            # Draw background image with proper scaling to fill the card
+                            c.drawImage(background_image, x, y, QR_SIZE, QR_SIZE, 
+                                      mask='auto', preserveAspectRatio=True)
+                        except:
+                            # If image fails to load, draw a colored background
+                            c.setFillColorRGB(0.95, 0.95, 0.98)  # Light background
+                            c.rect(x, y, QR_SIZE, QR_SIZE, fill=1)
+                    else:
+                        # Draw default background
+                        c.setFillColorRGB(0.95, 0.95, 0.98)  # Light background
+                        c.rect(x, y, QR_SIZE, QR_SIZE, fill=1)
                     
                     # Load metadata from JSON
                     with open(f"qr_codes/{json_files[current_item]}", "r", encoding="utf-8") as f:
@@ -101,18 +121,22 @@ def create_metadata_pdf():
     c.save()
 
 
-def main():
+def main(background_image=None):
     # Create output directory if it doesn't exist
     if not os.path.exists("pdf"):
         os.makedirs("pdf")
 
     # Generate both PDFs
-    create_qr_codes_pdf()
-    create_metadata_pdf()
+    create_qr_codes_pdf(background_image)
+    create_metadata_pdf(background_image)
     print("PDFs generated successfully!")
     print(" - QR codes: pdf/qr_codes_front.pdf")
     print(" - Metadata: pdf/metadata_back.pdf")
+    if background_image:
+        print(f" - Background image: {background_image}")
 
 
 if __name__ == "__main__":
-    main()
+    # Use background.png if it exists, otherwise no background
+    background_file = "background.png" if os.path.exists("background.png") else None
+    main(background_file)

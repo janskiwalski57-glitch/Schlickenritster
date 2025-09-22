@@ -169,7 +169,7 @@ class TestPDFGenerator:
             }
         ]
     
-    def create_test_qr_codes_pdf(self):
+    def create_test_qr_codes_pdf(self, background_image=None):
         """Create test PDF with mock QR code placeholders"""
         c = canvas.Canvas("pdf/test_qr_codes_front.pdf", pagesize=A4)
         
@@ -185,10 +185,20 @@ class TestPDFGenerator:
             for y in y_positions:
                 for x in x_positions:
                     if current_track < len(self.mock_tracks):
-                        # Draw border around the QR code
-                        c.setStrokeColorRGB(1.0, 0.75, 0.8)  # Pink border
-                        c.setLineWidth(0.5)
-                        c.rect(x, y, QR_SIZE, QR_SIZE)
+                        # Draw background image if provided
+                        if background_image and os.path.exists(background_image):
+                            try:
+                                # Draw background image with proper scaling to fill the card
+                                c.drawImage(background_image, x, y, QR_SIZE, QR_SIZE, 
+                                          mask='auto', preserveAspectRatio=True)
+                            except:
+                                # If image fails to load, draw a colored background
+                                c.setFillColorRGB(0.95, 0.95, 0.98)  # Light background
+                                c.rect(x, y, QR_SIZE, QR_SIZE, fill=1)
+                        else:
+                            # Draw default background
+                            c.setFillColorRGB(0.95, 0.95, 0.98)  # Light background
+                            c.rect(x, y, QR_SIZE, QR_SIZE, fill=1)
                         
                         # Draw placeholder rectangle for QR code
                         c.setFillColorRGB(0.9, 0.9, 0.9)  # Light gray
@@ -207,7 +217,7 @@ class TestPDFGenerator:
         
         c.save()
     
-    def create_test_metadata_pdf(self):
+    def create_test_metadata_pdf(self, background_image=None):
         """Create test PDF with mock metadata"""
         c = canvas.Canvas("pdf/test_metadata_back.pdf", pagesize=A4)
         
@@ -225,10 +235,20 @@ class TestPDFGenerator:
                     if current_track < len(self.mock_tracks):
                         track = self.mock_tracks[current_track]
                         
-                        # Draw border around the card
-                        c.setStrokeColorRGB(1.0, 0.75, 0.8)  # Pink border
-                        c.setLineWidth(0.5)
-                        c.rect(x, y, QR_SIZE, QR_SIZE)
+                        # Draw background image if provided
+                        if background_image and os.path.exists(background_image):
+                            try:
+                                # Draw background image with proper scaling to fill the card
+                                c.drawImage(background_image, x, y, QR_SIZE, QR_SIZE, 
+                                          mask='auto', preserveAspectRatio=True)
+                            except:
+                                # If image fails to load, draw a colored background
+                                c.setFillColorRGB(0.95, 0.95, 0.98)  # Light background
+                                c.rect(x, y, QR_SIZE, QR_SIZE, fill=1)
+                        else:
+                            # Draw default background
+                            c.setFillColorRGB(0.95, 0.95, 0.98)  # Light background
+                            c.rect(x, y, QR_SIZE, QR_SIZE, fill=1)
                         
                         # Draw metadata
                         c.setFont("Helvetica", 6)
@@ -254,19 +274,22 @@ class TestPDFGenerator:
         
         c.save()
     
-    def run_test(self):
+    def run_test(self, background_image=None):
         """Run the test PDF generation"""
         # Create output directory if it doesn't exist
         if not os.path.exists("pdf"):
             os.makedirs("pdf")
         
         # Generate test PDFs
-        self.create_test_qr_codes_pdf()
-        self.create_test_metadata_pdf()
+        self.create_test_qr_codes_pdf(background_image)
+        self.create_test_metadata_pdf(background_image)
         print("Test PDFs generated successfully!")
         print(" - QR codes: pdf/test_qr_codes_front.pdf")
         print(" - Metadata: pdf/test_metadata_back.pdf")
+        if background_image:
+            print(f" - Background image: {background_image}")
 
 
 if __name__ == "__main__":
-    TestPDFGenerator().run_test()
+    # Test with your background.png
+    TestPDFGenerator().run_test("background.png")
