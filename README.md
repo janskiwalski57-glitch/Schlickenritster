@@ -25,6 +25,8 @@ This script downloads QR codes for all tracks in your Spotify playlist. Each QR 
    - Replace `YOUR_CLIENT_ID` with your actual Client ID
    - Replace `YOUR_CLIENT_SECRET` with your actual Client Secret
 
+5. Replace USERNAME with your own username and make sure u create a private copy of the playlist (possible in mobile and desktop app, not in browser app), as you cannot access shared playlists.
+
 ## Usage
 
 1. Activate the virtual environment:
