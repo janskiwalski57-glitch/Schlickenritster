@@ -13,7 +13,7 @@ ROWS = 6
 SPACING = 5 * mm
 
 
-def create_qr_codes_pdf(background_image=None):
+def create_qr_codes_pdf(background_images=None):
     """Create PDF with just QR codes"""
     c = canvas.Canvas("pdf/qr_codes_front.pdf", pagesize=A4)
 
@@ -30,14 +30,22 @@ def create_qr_codes_pdf(background_image=None):
         for y in y_positions:
             for x in x_positions:
                 if current_qr < len(qr_files):
-                    # Draw background image if provided
-                    if background_image and os.path.exists(background_image):
-                        try:
-                            # Draw background image with proper scaling to fill the card
-                            c.drawImage(background_image, x, y, QR_SIZE, QR_SIZE, 
-                                      mask='auto', preserveAspectRatio=True)
-                        except:
-                            # If image fails to load, draw a colored background
+                    # Select background image based on QR number (cycle every 10 songs)
+                    if background_images and len(background_images) > 0:
+                        background_index = (current_qr // 10) % len(background_images)
+                        background_image = background_images[background_index]
+                        
+                        if os.path.exists(background_image):
+                            try:
+                                # Draw background image with proper scaling to fill the card
+                                c.drawImage(background_image, x, y, QR_SIZE, QR_SIZE, 
+                                          mask='auto', preserveAspectRatio=True)
+                            except:
+                                # If image fails to load, draw a colored background
+                                c.setFillColorRGB(0.95, 0.95, 0.98)  # Light background
+                                c.rect(x, y, QR_SIZE, QR_SIZE, fill=1)
+                        else:
+                            # Draw default background
                             c.setFillColorRGB(0.95, 0.95, 0.98)  # Light background
                             c.rect(x, y, QR_SIZE, QR_SIZE, fill=1)
                     else:
@@ -57,7 +65,7 @@ def create_qr_codes_pdf(background_image=None):
     c.save()
 
 
-def create_metadata_pdf(background_image=None):
+def create_metadata_pdf(background_images=None):
     """Create PDF with metadata"""
     c = canvas.Canvas("pdf/metadata_back.pdf", pagesize=A4)
 
@@ -75,14 +83,22 @@ def create_metadata_pdf(background_image=None):
         for y in y_positions:
             for x in x_positions[::-1]:
                 if current_item < len(json_files):
-                    # Draw background image if provided
-                    if background_image and os.path.exists(background_image):
-                        try:
-                            # Draw background image with proper scaling to fill the card
-                            c.drawImage(background_image, x, y, QR_SIZE, QR_SIZE, 
-                                      mask='auto', preserveAspectRatio=True)
-                        except:
-                            # If image fails to load, draw a colored background
+                    # Select background image based on item number (cycle every 10 songs)
+                    if background_images and len(background_images) > 0:
+                        background_index = (current_item // 10) % len(background_images)
+                        background_image = background_images[background_index]
+                        
+                        if os.path.exists(background_image):
+                            try:
+                                # Draw background image with proper scaling to fill the card
+                                c.drawImage(background_image, x, y, QR_SIZE, QR_SIZE, 
+                                          mask='auto', preserveAspectRatio=True)
+                            except:
+                                # If image fails to load, draw a colored background
+                                c.setFillColorRGB(0.95, 0.95, 0.98)  # Light background
+                                c.rect(x, y, QR_SIZE, QR_SIZE, fill=1)
+                        else:
+                            # Draw default background
                             c.setFillColorRGB(0.95, 0.95, 0.98)  # Light background
                             c.rect(x, y, QR_SIZE, QR_SIZE, fill=1)
                     else:
@@ -121,22 +137,31 @@ def create_metadata_pdf(background_image=None):
     c.save()
 
 
-def main(background_image=None):
+def main(background_folder="background"):
     # Create output directory if it doesn't exist
     if not os.path.exists("pdf"):
         os.makedirs("pdf")
 
+    # Load background images from folder
+    background_images = []
+    if os.path.exists(background_folder):
+        # Get all PNG files from the background folder and sort them
+        bg_files = sorted([f for f in os.listdir(background_folder) if f.lower().endswith('.png')])
+        background_images = [os.path.join(background_folder, f) for f in bg_files]
+        print(f"Found {len(background_images)} background images: {bg_files}")
+    else:
+        print(f"Background folder '{background_folder}' not found, using default backgrounds")
+
     # Generate both PDFs
-    create_qr_codes_pdf(background_image)
-    create_metadata_pdf(background_image)
+    create_qr_codes_pdf(background_images)
+    create_metadata_pdf(background_images)
     print("PDFs generated successfully!")
     print(" - QR codes: pdf/qr_codes_front.pdf")
     print(" - Metadata: pdf/metadata_back.pdf")
-    if background_image:
-        print(f" - Background image: {background_image}")
+    if background_images:
+        print(f" - Background cycling: Every 10 songs switches between {len(background_images)} images")
 
 
 if __name__ == "__main__":
-    # Use background.png if it exists, otherwise no background
-    background_file = "background.png" if os.path.exists("background.png") else None
-    main(background_file)
+    # Use background folder for cycling backgrounds
+    main("background")

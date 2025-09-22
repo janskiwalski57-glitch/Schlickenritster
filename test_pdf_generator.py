@@ -169,7 +169,7 @@ class TestPDFGenerator:
             }
         ]
     
-    def create_test_qr_codes_pdf(self, background_image=None):
+    def create_test_qr_codes_pdf(self, background_images=None):
         """Create test PDF with mock QR code placeholders"""
         c = canvas.Canvas("pdf/test_qr_codes_front.pdf", pagesize=A4)
         
@@ -185,14 +185,22 @@ class TestPDFGenerator:
             for y in y_positions:
                 for x in x_positions:
                     if current_track < len(self.mock_tracks):
-                        # Draw background image if provided
-                        if background_image and os.path.exists(background_image):
-                            try:
-                                # Draw background image with proper scaling to fill the card
-                                c.drawImage(background_image, x, y, QR_SIZE, QR_SIZE, 
-                                          mask='auto', preserveAspectRatio=True)
-                            except:
-                                # If image fails to load, draw a colored background
+                        # Select background image based on track number (cycle every 10 songs)
+                        if background_images and len(background_images) > 0:
+                            background_index = (current_track // 10) % len(background_images)
+                            background_image = background_images[background_index]
+                            
+                            if os.path.exists(background_image):
+                                try:
+                                    # Draw background image with proper scaling to fill the card
+                                    c.drawImage(background_image, x, y, QR_SIZE, QR_SIZE, 
+                                              mask='auto', preserveAspectRatio=True)
+                                except:
+                                    # If image fails to load, draw a colored background
+                                    c.setFillColorRGB(0.95, 0.95, 0.98)  # Light background
+                                    c.rect(x, y, QR_SIZE, QR_SIZE, fill=1)
+                            else:
+                                # Draw default background
                                 c.setFillColorRGB(0.95, 0.95, 0.98)  # Light background
                                 c.rect(x, y, QR_SIZE, QR_SIZE, fill=1)
                         else:
@@ -217,7 +225,7 @@ class TestPDFGenerator:
         
         c.save()
     
-    def create_test_metadata_pdf(self, background_image=None):
+    def create_test_metadata_pdf(self, background_images=None):
         """Create test PDF with mock metadata"""
         c = canvas.Canvas("pdf/test_metadata_back.pdf", pagesize=A4)
         
@@ -235,14 +243,22 @@ class TestPDFGenerator:
                     if current_track < len(self.mock_tracks):
                         track = self.mock_tracks[current_track]
                         
-                        # Draw background image if provided
-                        if background_image and os.path.exists(background_image):
-                            try:
-                                # Draw background image with proper scaling to fill the card
-                                c.drawImage(background_image, x, y, QR_SIZE, QR_SIZE, 
-                                          mask='auto', preserveAspectRatio=True)
-                            except:
-                                # If image fails to load, draw a colored background
+                        # Select background image based on track number (cycle every 10 songs)
+                        if background_images and len(background_images) > 0:
+                            background_index = (current_track // 10) % len(background_images)
+                            background_image = background_images[background_index]
+                            
+                            if os.path.exists(background_image):
+                                try:
+                                    # Draw background image with proper scaling to fill the card
+                                    c.drawImage(background_image, x, y, QR_SIZE, QR_SIZE, 
+                                              mask='auto', preserveAspectRatio=True)
+                                except:
+                                    # If image fails to load, draw a colored background
+                                    c.setFillColorRGB(0.95, 0.95, 0.98)  # Light background
+                                    c.rect(x, y, QR_SIZE, QR_SIZE, fill=1)
+                            else:
+                                # Draw default background
                                 c.setFillColorRGB(0.95, 0.95, 0.98)  # Light background
                                 c.rect(x, y, QR_SIZE, QR_SIZE, fill=1)
                         else:
@@ -274,22 +290,32 @@ class TestPDFGenerator:
         
         c.save()
     
-    def run_test(self, background_image=None):
+    def run_test(self, background_folder="background"):
         """Run the test PDF generation"""
         # Create output directory if it doesn't exist
         if not os.path.exists("pdf"):
             os.makedirs("pdf")
         
+        # Load background images from folder
+        background_images = []
+        if os.path.exists(background_folder):
+            # Get all PNG files from the background folder and sort them
+            bg_files = sorted([f for f in os.listdir(background_folder) if f.lower().endswith('.png')])
+            background_images = [os.path.join(background_folder, f) for f in bg_files]
+            print(f"Found {len(background_images)} background images: {bg_files}")
+        else:
+            print(f"Background folder '{background_folder}' not found, using default backgrounds")
+        
         # Generate test PDFs
-        self.create_test_qr_codes_pdf(background_image)
-        self.create_test_metadata_pdf(background_image)
+        self.create_test_qr_codes_pdf(background_images)
+        self.create_test_metadata_pdf(background_images)
         print("Test PDFs generated successfully!")
         print(" - QR codes: pdf/test_qr_codes_front.pdf")
         print(" - Metadata: pdf/test_metadata_back.pdf")
-        if background_image:
-            print(f" - Background image: {background_image}")
+        if background_images:
+            print(f" - Background cycling: Every 10 songs switches between {len(background_images)} images")
 
 
 if __name__ == "__main__":
-    # Test with your background.png
-    TestPDFGenerator().run_test("background.png")
+    # Test with background cycling from the background folder
+    TestPDFGenerator().run_test("background")
