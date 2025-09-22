@@ -63,6 +63,38 @@ def wrap_text_to_lines(text, font_name, font_size, max_width):
     
     return lines if lines else [""]
 
+def wrap_text_by_char_limit(text, max_line_chars=10, max_lines=3):
+    """Wrap text by character count per line, breaking at spaces.
+    Returns up to max_lines lines; does not exceed max_line_chars per line.
+    """
+    if not text:
+        return [""]
+    words = text.split()
+    if not words:
+        return [""]
+    lines = []
+    current_line = ""
+    for word in words:
+        candidate = (current_line + (" " if current_line else "") + word)
+        if len(candidate) <= max_line_chars:
+            current_line = candidate
+        else:
+            if current_line:
+                lines.append(current_line)
+                if len(lines) == max_lines:
+                    break
+                current_line = word if len(word) <= max_line_chars else word[:max_line_chars]
+            else:
+                # Single long word: hard cut
+                lines.append(word[:max_line_chars])
+                if len(lines) == max_lines:
+                    current_line = ""
+                    break
+                current_line = ""
+    if current_line and len(lines) < max_lines:
+        lines.append(current_line)
+    return lines if lines else [""]
+
 # Constants for layout (same as main file)
 PAGE_WIDTH, PAGE_HEIGHT = A4
 MARGIN = 10 * mm
@@ -370,26 +402,78 @@ class TestPDFGenerator:
                         # Calculate available width (with some padding)
                         available_width = QR_SIZE - 4  # 2mm padding on each side
                         
-                        # Wrap song name to multiple lines if needed
-                        song_name_lines = wrap_text_to_lines(track["name"], "BauhausBoldBT", 8, available_width)
+                        # Enforce hard title length limit
+                        title_text = track["name"]
+                        if len(title_text) > 30:
+                            print(f"Skipping title over 30 chars: {title_text}")
+                            current_track += 1
+                            continue
+                        # Wrap song name using 10-char line rule (space-aware)
+                        song_name_lines = wrap_text_by_char_limit(title_text, max_line_chars=10, max_lines=3)
+                        # Balance first two lines for better break (e.g., "Something in the" + "Way")
+                        if len(song_name_lines) >= 2:
+                            measure_font = "BauhausBoldBT"
+                            try:
+                                _ = pdfmetrics.getFont(measure_font)
+                            except:
+                                measure_font = "Helvetica-Bold"
+                            def line_width(txt):
+                                return c.stringWidth(txt, measure_font, 14)
+                            first = song_name_lines[0]
+                            second = song_name_lines[1]
+                            while True:
+                                parts = first.rstrip().split(" ")
+                                if len(parts) <= 1:
+                                    break
+                                last_word = parts[-1]
+                                candidate_first = " ".join(parts[:-1])
+                                candidate_second = (last_word + (" " + second if second else ""))
+                                if line_width(candidate_second) <= available_width and (line_width(first) - line_width(second)) > (2 * 14):
+                                    first = candidate_first
+                                    second = candidate_second
+                                else:
+                                    break
+                            song_name_lines[0] = first
+                            song_name_lines[1] = second
+                        # Constrain to max number of title lines and add ellipsis if needed
+                        max_title_lines = 3
+                        if len(song_name_lines) > max_title_lines:
+                            song_name_lines = song_name_lines[:max_title_lines]
+                            ellipsis = "..."
+                            last_line = song_name_lines[-1].rstrip()
+                            measure_font = "BauhausBoldBT"
+                            try:
+                                _ = pdfmetrics.getFont(measure_font)
+                            except:
+                                measure_font = "Helvetica-Bold"
+                            while last_line and c.stringWidth(last_line + ellipsis, measure_font, 14) > available_width:
+                                last_line = last_line[:-1]
+                            song_name_lines[-1] = (last_line + ellipsis) if last_line else ellipsis
                         
                         # Create text lines with wrapped song name
                         text_lines = []
                         for line in song_name_lines:
-                            text_lines.append({"text": line, "font": "BauhausBoldBT", "size": 8, "fallback": "Helvetica-Bold"})
+                            text_lines.append({"text": line, "font": "BauhausBoldBT", "size": 14, "fallback": "BauhausBoldBT"})
                         
                         # Add year and artist
                         text_lines.extend([
-                            {"text": track["release_year"], "font": "BauhausBoldBT", "size": 6, "fallback": "Helvetica"},
-                            {"text": track["artists"][0], "font": "BauhausBoldBT", "size": 6, "fallback": "Helvetica"},  # Just first artist
+                            {"text": track["release_year"], "font": "BauhausBoldBT", "size": 8, "fallback": "BauhausBoldBT"},
+                            {"text": track["artists"][0], "font": "BauhausBoldBT", "size": 8, "fallback": "BauhausBoldBT"},  # Just first artist
                         ])
                         
                         # Calculate total height needed for all text
                         total_text_height = 0
                         line_heights = []
-                        for line_info in text_lines:
+                        title_line_count = len(song_name_lines)
+                        for idx, line_info in enumerate(text_lines):
                             c.setFont(line_info["font"], line_info["size"])
-                            line_height = line_info["size"] + 2  # Add small spacing
+                            # Tighter spacing between title lines (-1), extra gap before year/artist (+2)
+                            if idx < title_line_count:
+                                line_height = line_info["size"] + 1
+                            elif idx == title_line_count:  # first non-title line (year)
+                                line_height = line_info["size"] + 8
+                            else:
+                                line_height = line_info["size"] + 3
                             line_heights.append(line_height)
                             total_text_height += line_height
                         
