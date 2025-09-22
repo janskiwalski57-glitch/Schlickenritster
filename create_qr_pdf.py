@@ -30,6 +30,11 @@ def create_qr_codes_pdf():
         for y in y_positions:
             for x in x_positions:
                 if current_qr < len(qr_files):
+                    # Draw border around the QR code
+                    c.setStrokeColorRGB(1.0, 0.75, 0.8)  # Pink border
+                    c.setLineWidth(0.5)
+                    c.rect(x, y, QR_SIZE, QR_SIZE)
+                    
                     c.drawImage(
                         f"qr_codes/{qr_files[current_qr]}", x, y, QR_SIZE, QR_SIZE
                     )
@@ -60,8 +65,13 @@ def create_metadata_pdf():
         for y in y_positions:
             for x in x_positions[::-1]:
                 if current_item < len(json_files):
+                    # Draw border around the card
+                    c.setStrokeColorRGB(1.0, 0.75, 0.8)  # Pink border
+                    c.setLineWidth(0.5)
+                    c.rect(x, y, QR_SIZE, QR_SIZE)
+                    
                     # Load metadata from JSON
-                    with open(f"qr_codes/{json_files[current_item]}", "r") as f:
+                    with open(f"qr_codes/{json_files[current_item]}", "r", encoding="utf-8") as f:
                         metadata = json.load(f)
 
                     # Draw metadata
@@ -74,11 +84,13 @@ def create_metadata_pdf():
                         ],  # Just first artist
                     ]
 
-                    # Draw text lines
+                    # Draw text lines (centered)
                     for i, line in enumerate(text_lines):
-                        c.drawString(
-                            x, y + QR_SIZE - (i + 1) * 8, line[:30]
-                        )  # Truncate long text
+                        text = line[:30]  # Truncate long text
+                        text_width = c.stringWidth(text, "Helvetica", 6)
+                        # Center text within the QR code area
+                        text_x = x + (QR_SIZE - text_width) / 2
+                        c.drawString(text_x, y + QR_SIZE - (i + 1) * 8, text)
 
                     current_item += 1
                 else:
