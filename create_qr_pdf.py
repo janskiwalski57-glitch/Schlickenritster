@@ -268,7 +268,7 @@ def create_metadata_pdf(background_images=None):
                         elif idx == title_line_count:  # first non-title line (year)
                             line_height = line_info["size"] + 8
                         else:
-                            line_height = line_info["size"] + 2
+                            line_height = line_info["size"] + 3
                         line_heights.append(line_height)
                         total_text_height += line_height
                     
